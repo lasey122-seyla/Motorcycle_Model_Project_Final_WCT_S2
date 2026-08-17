@@ -11,10 +11,12 @@ export default function Products() {
 
   const formatImageUrl = (url) => {
     if (!url || typeof url !== "string") return fallbackImage;
-    const cleanRawUrl = url.trim().replace(/^["']|["']$/g, "");
 
+    // Remove quotes and leading/trailing whitespace
+    let cleanRawUrl = url.trim().replace(/^["']|["']$/g, "");
     if (!cleanRawUrl) return fallbackImage;
 
+    // Return direct web or data URLs directly
     if (
       cleanRawUrl.startsWith("http://") ||
       cleanRawUrl.startsWith("https://") ||
@@ -24,15 +26,23 @@ export default function Products() {
       return cleanRawUrl;
     }
 
+    // Strip relative prefixes like ../ or ./ or leading slashes
+    cleanRawUrl = cleanRawUrl.replace(/^(\.\.\/|\.\/|\/)+/, "");
+
+    // Automatically prepend 'image/' if the path does not include it
+    if (
+      !cleanRawUrl.startsWith("image/") &&
+      !cleanRawUrl.startsWith("assets/")
+    ) {
+      cleanRawUrl = `image/${cleanRawUrl}`;
+    }
+
+    // Get Vite base path (e.g., /model_motorcycle_S2/)
     const baseUrl = import.meta.env.BASE_URL.endsWith("/")
       ? import.meta.env.BASE_URL
       : `${import.meta.env.BASE_URL}/`;
 
-    const cleanUrl = cleanRawUrl.startsWith("/")
-      ? cleanRawUrl.slice(1)
-      : cleanRawUrl;
-
-    return `${baseUrl}${cleanUrl}`;
+    return `${baseUrl}${cleanRawUrl}`;
   };
 
   useEffect(() => {
@@ -72,7 +82,6 @@ export default function Products() {
             title: data.title || "No Title",
             description: formattedDescription.trim(),
             image: formatImageUrl(rawImg),
-            rawImgPath: rawImg,
           };
         });
 
@@ -113,19 +122,6 @@ export default function Products() {
                 alt={item.title}
                 className="w-full h-full object-contain"
                 onError={(e) => {
-                  if (
-                    item.rawImgPath &&
-                    !item.rawImgPath.startsWith("http") &&
-                    e.target.src !== fallbackImage
-                  ) {
-                    const altSrc = item.rawImgPath.startsWith("/")
-                      ? item.rawImgPath
-                      : `/${item.rawImgPath}`;
-                    if (e.target.src !== window.location.origin + altSrc) {
-                      e.target.src = altSrc;
-                      return;
-                    }
-                  }
                   e.target.onerror = null;
                   e.target.src = fallbackImage;
                 }}
